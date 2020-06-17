@@ -2,30 +2,38 @@ package mappers;
 
 import model.Transaction;
 
-import java.util.AbstractMap.SimpleEntry;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class TransactionMapper {
     public Map<String, Double> getAverageAmountPerEmailAddress(List<Transaction> transactions) {
 
-        Map<String, List<Transaction>> transactionPerEmail = transactions.stream()
-                .collect(Collectors.groupingBy(Transaction::getEmailAddress));
+        Map<String, List<Transaction>> transactionPerEmail = new HashMap<>();
+        for (Transaction transaction : transactions) {
+            String email = transaction.getEmailAddress();
 
-        Map<String, Double> averageTransactionPerEmail = transactionPerEmail.entrySet().stream()
-                .map(entry1 -> {
-                    String email = entry1.getKey();
-                    List<Transaction> personTransactions = entry1.getValue();
+            List<Transaction> personTransactions;
+            if (!transactionPerEmail.containsKey(email)) {
+                personTransactions = new ArrayList<>();
+                transactionPerEmail.put(email, personTransactions);
+            } else {
+                personTransactions = transactionPerEmail.get(email);
+            }
 
-                    double average = personTransactions.stream()
-                            .mapToDouble(Transaction::getAmount)
-                            .average()
-                            .getAsDouble();
+            personTransactions.add(transaction);
+        }
 
-                    return new SimpleEntry<>(email, average);
-                })
-                .collect(Collectors.toMap(SimpleEntry::getKey, SimpleEntry::getValue));
+        Map<String, Double> averageTransactionPerEmail = new HashMap<>();
+        for (Map.Entry<String, List<Transaction>> entry : transactionPerEmail.entrySet()) {
+            List<Transaction> personTransactions = entry.getValue();
+            long sum = 0;
+            for (Transaction personTransaction : personTransactions) {
+                sum += personTransaction.getAmount();
+            }
+            averageTransactionPerEmail.put(entry.getKey(), ((double) sum / personTransactions.size()));
+        }
 
         return averageTransactionPerEmail;
     }
